@@ -1,0 +1,1104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+<title>Rent Manager Pro</title>
+
+<!-- ═══════════ PWA / ANDROID APP SETUP ═══════════ -->
+<link rel="manifest" href="manifest.json"/>
+<meta name="theme-color" content="#1a2744"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="RentManager"/>
+<link rel="icon" href="icon-192.png" sizes="192x192"/>
+<link rel="apple-touch-icon" href="icon-192.png"/>
+
+<!--
+╔══════════════════════════════════════════════════════════════════╗
+║           RENT MANAGER PRO — Complete Single File App           ║
+║  Default Login: Username: admin  |  Password: admin123          ║
+║  DATABASE: Browser localStorage (stays on device/browser)       ║
+║  Installable as an Android/Desktop app via PWA (see manifest)   ║
+╚══════════════════════════════════════════════════════════════════╝
+-->
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{min-height:100%;font-family:'Segoe UI',Arial,sans-serif;background:#f0f2f7;color:#1a1a2e;font-size:14px;}
+
+/* ─── LOGIN PAGE ─────────────────────────────────────────────── */
+#login-page{display:flex;align-items:center;justify-content:center;min-height:100vh;
+  background:linear-gradient(135deg,#0f1b38 0%,#1a2744 50%,#22316b 100%);padding:20px;}
+.login-box{background:#fff;border-radius:20px;padding:44px 48px;width:100%;max-width:420px;
+  box-shadow:0 20px 60px rgba(0,0,0,.4);}
+.login-logo{text-align:center;margin-bottom:32px;}
+.login-logo-icon{font-size:52px;margin-bottom:8px;}
+.login-logo-title{font-size:26px;font-weight:800;color:#1a2744;letter-spacing:.5px;}
+.login-logo-title span{color:#d4860e;}
+.login-logo-sub{font-size:12px;color:#aaa;margin-top:4px;letter-spacing:1px;text-transform:uppercase;}
+.login-group{margin-bottom:18px;}
+.login-group label{display:block;font-size:11px;font-weight:700;color:#666;
+  text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;}
+.login-input{width:100%;padding:12px 16px;border:2px solid #e8e8e8;border-radius:10px;
+  font-size:14px;font-family:inherit;background:#fafafa;transition:all .2s;outline:none;}
+.login-input:focus{border-color:#d4860e;background:#fff;box-shadow:0 0 0 4px rgba(212,134,14,.1);}
+.login-btn{width:100%;padding:13px;background:linear-gradient(135deg,#1a2744,#22316b);
+  color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;
+  font-family:inherit;cursor:pointer;transition:all .2s;margin-top:6px;}
+.login-btn:hover{background:linear-gradient(135deg,#22316b,#2a3d88);transform:translateY(-1px);
+  box-shadow:0 6px 20px rgba(26,39,68,.4);}
+.login-error{background:#fdecea;color:#c0392b;border:1px solid #f5c6cb;
+  padding:10px 14px;border-radius:8px;font-size:13px;margin-bottom:14px;display:none;}
+.login-hint{text-align:center;font-size:12px;color:#bbb;margin-top:18px;}
+.login-hint strong{color:#d4860e;}
+#install-banner{display:none;background:#fff3cd;color:#856404;border:1px solid #ffe69c;
+  padding:10px 14px;border-radius:10px;font-size:12px;margin-top:16px;text-align:center;cursor:pointer;}
+#install-banner:hover{background:#ffeeba;}
+
+/* ─── MAIN APP ───────────────────────────────────────────────── */
+#app{display:none;}
+.topbar{background:linear-gradient(135deg,#1a2744 0%,#22316b 100%);color:#fff;
+  padding:0 20px;display:flex;align-items:center;justify-content:space-between;
+  height:56px;border-bottom:3px solid #d4860e;position:sticky;top:0;z-index:100;
+  box-shadow:0 2px 12px rgba(0,0,0,.3);}
+.topbar-brand{font-size:17px;font-weight:800;white-space:nowrap;display:flex;align-items:center;gap:8px;}
+.topbar-brand span{color:#f0a030;}
+.topbar-right{display:flex;align-items:center;gap:8px;}
+.topbar-nav{display:flex;gap:3px;flex-wrap:wrap;}
+.nav-btn{background:none;border:none;color:rgba(255,255,255,.65);cursor:pointer;
+  padding:7px 11px;border-radius:7px;font-size:12px;font-family:inherit;transition:all .15s;white-space:nowrap;}
+.nav-btn:hover{background:rgba(255,255,255,.12);color:#fff;}
+.nav-btn.active{background:#d4860e;color:#fff;font-weight:700;}
+.logout-btn{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);
+  color:#fff;cursor:pointer;padding:6px 12px;border-radius:7px;font-size:12px;
+  font-family:inherit;transition:all .15s;white-space:nowrap;}
+.logout-btn:hover{background:rgba(192,57,43,.7);}
+.user-pill{background:rgba(212,134,14,.25);border:1px solid rgba(212,134,14,.4);
+  color:#f0a030;padding:5px 12px;border-radius:20px;font-size:12px;font-weight:700;}
+
+.main{padding:20px;max-width:1160px;margin:0 auto;width:100%;}
+.page{display:none;animation:fadeIn .2s ease;}
+.page.active{display:block;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(5px);}to{opacity:1;transform:translateY(0);}}
+
+/* ─── STATS ──────────────────────────────────────────────────── */
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px;}
+.stat-card{background:#fff;border-radius:14px;padding:18px 20px;
+  border-left:5px solid #d4860e;box-shadow:0 2px 10px rgba(0,0,0,.07);}
+.stat-label{font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;}
+.stat-value{font-size:24px;font-weight:800;color:#1a2744;}
+.stat-sub{font-size:11px;color:#aaa;margin-top:4px;}
+
+/* ─── CARDS ──────────────────────────────────────────────────── */
+.card{background:#fff;border-radius:14px;box-shadow:0 2px 10px rgba(0,0,0,.07);overflow:hidden;}
+.card-header{background:linear-gradient(135deg,#1a2744,#22316b);color:#fff;
+  padding:13px 20px;font-weight:700;font-size:13px;display:flex;align-items:center;gap:8px;}
+.card-body{padding:18px 20px;}
+
+/* ─── TABLE ──────────────────────────────────────────────────── */
+.table-wrap{overflow-x:auto;background:#fff;border-radius:14px;box-shadow:0 2px 10px rgba(0,0,0,.07);}
+table{width:100%;border-collapse:collapse;font-size:13px;}
+th{background:#1a2744;color:#fff;padding:10px 13px;text-align:left;
+  font-size:11px;font-weight:700;letter-spacing:.4px;white-space:nowrap;}
+td{padding:10px 13px;border-bottom:1px solid #f0f0f0;vertical-align:middle;}
+tr:last-child td{border-bottom:none;}tbody tr:hover td{background:#fafafe;}
+
+.avatar{width:32px;height:32px;border-radius:50%;background:#22316b;color:#f0a030;
+  display:inline-flex;align-items:center;justify-content:center;font-weight:800;font-size:11px;flex-shrink:0;}
+
+/* ─── BUTTONS ────────────────────────────────────────────────── */
+.btn{border:1px solid #ddd;background:#fff;color:#333;cursor:pointer;
+  padding:8px 15px;border-radius:8px;font-size:12px;font-family:inherit;
+  transition:all .15s;display:inline-flex;align-items:center;gap:5px;}
+.btn:hover{border-color:#bbb;background:#f5f5f5;}
+.btn-primary{background:#1a2744;color:#fff;border-color:#1a2744;}.btn-primary:hover{background:#22316b;}
+.btn-amber{background:#d4860e;color:#fff;border-color:#d4860e;}.btn-amber:hover{background:#e09520;}
+.btn-green{background:#1d8a6e;color:#fff;border-color:#1d8a6e;}.btn-green:hover{background:#22a080;}
+.btn-danger{background:#c0392b;color:#fff;border-color:#c0392b;}.btn-danger:hover{background:#e04030;}
+.btn-outline{background:transparent;border:1.5px solid #d4860e;color:#d4860e;}.btn-outline:hover{background:#d4860e;color:#fff;}
+.btn-sm{padding:4px 9px;font-size:11px;border-radius:6px;}
+
+/* ─── BADGES ─────────────────────────────────────────────────── */
+.badge{padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;}
+.badge-green{background:#d4edda;color:#155724;}
+.badge-red{background:#f8d7da;color:#721c24;}
+.badge-amber{background:#fff3cd;color:#856404;}
+
+/* ─── FORM ───────────────────────────────────────────────────── */
+.form-card{background:#fff;border-radius:14px;box-shadow:0 2px 10px rgba(0,0,0,.07);padding:28px 32px;}
+.form-title{font-size:18px;font-weight:800;color:#1a2744;margin-bottom:20px;padding-bottom:12px;border-bottom:3px solid #d4860e;}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:15px;}
+.form-group{display:flex;flex-direction:column;gap:5px;}
+.form-group.full{grid-column:span 2;}
+.form-label{font-size:11px;font-weight:700;color:#666;text-transform:uppercase;letter-spacing:.4px;}
+input,select,textarea{padding:9px 12px;border:1.5px solid #e0e0e0;border-radius:8px;font-size:13px;
+  font-family:inherit;background:#fafafa;color:#1a1a2e;width:100%;outline:none;transition:border-color .15s;}
+input:focus,select:focus,textarea:focus{border-color:#d4860e;background:#fff;box-shadow:0 0 0 3px rgba(212,134,14,.12);}
+.form-divider{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:1px;
+  color:#d4860e;padding-bottom:5px;border-bottom:2px solid rgba(212,134,14,.25);
+  grid-column:span 2;margin-top:8px;}
+.form-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:22px;
+  padding-top:16px;border-top:1px solid #eee;}
+
+/* ─── TOOLBAR ────────────────────────────────────────────────── */
+.toolbar{display:flex;gap:10px;margin-bottom:16px;align-items:center;flex-wrap:wrap;}
+.search-box{padding:9px 14px;border:1.5px solid #e0e0e0;border-radius:9px;font-size:13px;
+  font-family:inherit;background:#fff;width:280px;outline:none;transition:border-color .15s;}
+.search-box:focus{border-color:#d4860e;}
+
+/* ─── DASHBOARD 2-COL ────────────────────────────────────────── */
+.dash-two{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:18px;}
+.mini-row{display:flex;justify-content:space-between;align-items:center;
+  padding:9px 0;border-bottom:1px solid #f0f0f0;font-size:13px;}
+.mini-row:last-child{border-bottom:none;}
+
+/* ─── PAYMENTS ───────────────────────────────────────────────── */
+.pay-layout{display:grid;grid-template-columns:370px 1fr;gap:18px;align-items:start;}
+.pay-group{margin-bottom:14px;}
+.pay-group label{display:block;font-size:11px;font-weight:700;color:#666;
+  text-transform:uppercase;letter-spacing:.4px;margin-bottom:5px;}
+.dup-warn{background:#fff3cd;color:#856404;border:1px solid #ffc107;
+  padding:9px 12px;border-radius:8px;font-size:12px;margin-bottom:12px;display:none;}
+
+/* ─── REMINDERS ──────────────────────────────────────────────── */
+.rm-layout{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px;}
+.rm-stat{background:#fff;border-radius:12px;padding:16px 20px;box-shadow:0 2px 8px rgba(0,0,0,.06);}
+
+/* ─── RECEIPT ────────────────────────────────────────────────── */
+.receipt-outer{max-width:640px;margin:0 auto;}
+.receipt-card{background:#fff;border:2px solid #ddd;border-radius:14px;padding:40px 48px;
+  font-family:'Georgia',serif;box-shadow:0 4px 20px rgba(0,0,0,.1);}
+.rct-header{text-align:center;border-bottom:3px double #1a2744;padding-bottom:20px;margin-bottom:22px;}
+.rct-brand{font-size:22px;font-weight:800;color:#1a2744;letter-spacing:2px;}
+.rct-sec-label{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:1px;
+  color:#bbb;margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid #f0f0f0;}
+.rct-row{display:flex;justify-content:space-between;padding:5px 0;font-size:13px;border-bottom:1px dotted #eee;}
+.rct-row:last-child{border-bottom:none;}.rct-row span:last-child{font-weight:600;color:#333;}
+.rct-total-box{background:#1a2744;color:#fff;border-radius:10px;padding:14px 18px;
+  display:flex;justify-content:space-between;align-items:center;margin-top:16px;}
+.rct-total-val{font-size:24px;font-weight:800;color:#f0a030;}
+.rct-stamp{width:90px;height:90px;border-radius:50%;border:3px solid #1d8a6e;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  font-size:10px;font-weight:800;color:#1d8a6e;text-align:center;transform:rotate(-15deg);}
+
+/* ─── DATABASE/SETTINGS ──────────────────────────────────────── */
+.db-panel{background:#fff;border-radius:14px;box-shadow:0 2px 10px rgba(0,0,0,.07);
+  padding:28px 32px;max-width:740px;margin:0 auto;}
+.db-section{margin-bottom:26px;padding-bottom:22px;border-bottom:1px solid #eee;}
+.db-section:last-child{border-bottom:none;margin-bottom:0;}
+.db-section-title{font-size:16px;font-weight:800;color:#1a2744;margin-bottom:6px;}
+.db-section-desc{font-size:13px;color:#888;margin-bottom:14px;line-height:1.6;}
+.info-box{background:#e8f4fd;border-left:4px solid #2980b9;padding:13px 16px;
+  border-radius:0 8px 8px 0;font-size:13px;color:#1a4a6e;line-height:1.8;margin-bottom:10px;}
+.danger-box{background:#fdecea;border-left:4px solid #c0392b;padding:10px 14px;
+  border-radius:0 8px 8px 0;font-size:13px;color:#721c24;margin-bottom:12px;}
+.success-box{background:#d4edda;border-left:4px solid #28a745;padding:10px 14px;
+  border-radius:0 8px 8px 0;font-size:13px;color:#155724;margin-top:10px;display:none;}
+code{background:#f0f0f0;padding:2px 6px;border-radius:4px;font-size:12px;color:#c0392b;}
+
+/* ─── SETTINGS ───────────────────────────────────────────────── */
+.settings-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+
+/* ─── EMPTY STATE ────────────────────────────────────────────── */
+.empty-state{text-align:center;padding:48px 20px;color:#aaa;}
+.empty-icon{font-size:44px;margin-bottom:12px;}
+.empty-title{font-size:15px;font-weight:700;margin-bottom:5px;}
+.empty-sub{font-size:13px;}
+
+/* ─── TOAST ──────────────────────────────────────────────────── */
+#toast{position:fixed;bottom:24px;right:24px;background:#1a2744;color:#fff;
+  padding:12px 20px;border-radius:10px;font-size:13px;z-index:9999;display:none;
+  border-left:4px solid #d4860e;box-shadow:0 4px 20px rgba(0,0,0,.35);max-width:360px;}
+
+/* ─── PRINT ──────────────────────────────────────────────────── */
+@media print{
+  #login-page,.topbar,.toolbar,.no-print{display:none!important;}
+  body{background:#fff;}
+  .main{padding:0;max-width:100%;}
+  .page{display:none!important;}
+  #page-receipt{display:block!important;}
+  .receipt-card{border:none;box-shadow:none;padding:20px;}
+}
+
+/* ─── RESPONSIVE / ANDROID ───────────────────────────────────── */
+@media(max-width:700px){
+  .stats-grid{grid-template-columns:1fr 1fr;}
+  .pay-layout,.dash-two,.rm-layout,.settings-grid{grid-template-columns:1fr;}
+  .form-grid{grid-template-columns:1fr;}
+  .form-group.full,.form-divider{grid-column:span 1;}
+  .topbar{flex-wrap:wrap;height:auto;padding:10px 14px;gap:8px;}
+  .topbar-nav{gap:2px;}
+  .nav-btn{padding:5px 8px;font-size:11px;}
+  .login-box{padding:32px 26px;}
+  .table-wrap{font-size:12px;}
+}
+</style>
+</head>
+<body>
+
+<!-- ════════════════════════════════ LOGIN PAGE ════════════════════════════ -->
+<div id="login-page">
+  <div class="login-box">
+    <div class="login-logo">
+      <div class="login-logo-icon">🏠</div>
+      <div class="login-logo-title">Rent<span>Manager</span> Pro</div>
+      <div class="login-logo-sub">Property Management System</div>
+    </div>
+    <div class="login-error" id="login-error">❌ Invalid username or password.</div>
+    <div class="login-group">
+      <label>Username</label>
+      <input class="login-input" type="text" id="login-user" placeholder="Enter username" autocomplete="username"
+        onkeydown="if(event.key==='Enter')document.getElementById('login-pass').focus()"/>
+    </div>
+    <div class="login-group">
+      <label>Password</label>
+      <input class="login-input" type="password" id="login-pass" placeholder="Enter password" autocomplete="current-password"
+        onkeydown="if(event.key==='Enter')doLogin()"/>
+    </div>
+    <button class="login-btn" onclick="doLogin()">Sign In →</button>
+    <div class="login-hint">Default: <strong>admin</strong> / <strong>admin123</strong><br>
+      Change credentials in Settings after login.</div>
+    <div id="install-banner" onclick="triggerInstall()">📲 Tap here to install this app on your phone</div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════ MAIN APP ══════════════════════════════ -->
+<div id="app">
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="topbar-brand">🏠 Rent<span>Manager</span> Pro</div>
+  <div class="topbar-nav">
+    <button class="nav-btn active" id="nb-dashboard"  onclick="nav('dashboard',this)">📊 Dashboard</button>
+    <button class="nav-btn"        id="nb-tenants"    onclick="nav('tenants',this)">👥 Tenants</button>
+    <button class="nav-btn"        id="nb-payments"   onclick="nav('payments',this);initPayForm()">💰 Payments</button>
+    <button class="nav-btn"        id="nb-reminders"  onclick="nav('reminders',this)">🔔 Reminders</button>
+    <button class="nav-btn"        id="nb-add"        onclick="nav('add',this);openAdd()">+ Add Tenant</button>
+    <button class="nav-btn"        id="nb-database"   onclick="nav('database',this)">🗄️ Database</button>
+    <button class="nav-btn"        id="nb-settings"   onclick="nav('settings',this)">⚙️ Settings</button>
+  </div>
+  <div class="topbar-right">
+    <div class="user-pill" id="user-pill">👤 admin</div>
+    <button class="logout-btn" onclick="doLogout()">Sign Out</button>
+  </div>
+</div>
+
+<div class="main">
+
+<!-- ════════════════ DASHBOARD ════════════════ -->
+<div class="page active" id="page-dashboard">
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-label">Active Tenants</div>
+      <div class="stat-value" id="s-active">0</div>
+      <div class="stat-sub">Currently residing</div>
+    </div>
+    <div class="stat-card" style="border-left-color:#1d8a6e;">
+      <div class="stat-label">Monthly Revenue</div>
+      <div class="stat-value" id="s-revenue">₹0</div>
+      <div class="stat-sub">Rent + maintenance</div>
+    </div>
+    <div class="stat-card" style="border-left-color:#c0392b;">
+      <div class="stat-label">Unpaid This Month</div>
+      <div class="stat-value" id="s-unpaid">0</div>
+      <div class="stat-sub" id="s-mlabel">—</div>
+    </div>
+    <div class="stat-card" style="border-left-color:#8e44ad;">
+      <div class="stat-label">Total Collected</div>
+      <div class="stat-value" id="s-collected">₹0</div>
+      <div class="stat-sub">All-time payments</div>
+    </div>
+  </div>
+  <div class="dash-two">
+    <div class="card">
+      <div class="card-header">🔔 Reminders — <span id="dash-period-label" style="color:#f0a030;margin-left:4px;"></span></div>
+      <div class="card-body" id="dash-reminders"></div>
+    </div>
+    <div class="card">
+      <div class="card-header">💳 Recent Payments</div>
+      <div class="card-body" id="dash-recent-pay"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════ TENANTS ════════════════ -->
+<div class="page" id="page-tenants">
+  <div class="toolbar">
+    <input class="search-box" type="text" placeholder="🔍  Search by name, phone, Aadhar…" oninput="renderTenants(this.value)"/>
+    <button class="btn btn-amber" onclick="nav('add',document.getElementById('nb-add'));openAdd()">+ Add Tenant</button>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr>
+        <th>Tenant</th><th>Phone / Aadhar</th><th>Occupancy</th>
+        <th>Rent (₹)</th><th>Deposit (₹)</th><th>Status</th><th>Actions</th>
+      </tr></thead>
+      <tbody id="t-tbody"></tbody>
+    </table>
+    <div class="empty-state" id="t-empty" style="display:none;">
+      <div class="empty-icon">🏘️</div>
+      <div class="empty-title">No tenants yet</div>
+      <div class="empty-sub">Click <strong>+ Add Tenant</strong> to get started</div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════ ADD / EDIT TENANT ════════════════ -->
+<div class="page" id="page-add">
+  <div class="form-card">
+    <div class="form-title" id="form-title">Add New Tenant</div>
+    <div class="form-grid">
+      <div class="form-divider">👤 Personal Information</div>
+      <div class="form-group"><label class="form-label">Full Name *</label>
+        <input id="f-name" type="text" placeholder="Enter full name"/></div>
+      <div class="form-group"><label class="form-label">Aadhar Number</label>
+        <input id="f-aadhar" type="text" placeholder="XXXX XXXX XXXX" maxlength="14" oninput="fmtAadhar(this)"/></div>
+      <div class="form-group"><label class="form-label">Phone Number *</label>
+        <input id="f-phone" type="tel" placeholder="+91 XXXXX XXXXX"/></div>
+      <div class="form-group"><label class="form-label">Alternate Contact</label>
+        <input id="f-altcontact" type="text" placeholder="Name and phone number"/></div>
+      <div class="form-group full"><label class="form-label">Occupation</label>
+        <input id="f-occupation" type="text" placeholder="e.g. Software Engineer, Business Owner"/></div>
+
+      <div class="form-divider">🏠 Tenancy Details</div>
+      <div class="form-group"><label class="form-label">Date of Occupancy *</label>
+        <input id="f-occupancy" type="date"/></div>
+      <div class="form-group"><label class="form-label">Date of Exit / Leaving</label>
+        <input id="f-exit" type="date"/></div>
+      <div class="form-group"><label class="form-label">Initial Rent (₹) *</label>
+        <input id="f-rent" type="number" min="0" placeholder="0"/></div>
+      <div class="form-group"><label class="form-label">Initial Deposit (₹) *</label>
+        <input id="f-deposit" type="number" min="0" placeholder="0"/></div>
+      <div class="form-group"><label class="form-label">Yearly Increment (%)</label>
+        <input id="f-increment" type="number" min="0" max="100" value="5"/></div>
+
+      <div class="form-divider">🔧 Charges</div>
+      <div class="form-group"><label class="form-label">Maintenance Charges (₹/month)</label>
+        <input id="f-maintenance" type="number" min="0" value="0"/></div>
+      <div class="form-group"><label class="form-label">Painting Charge (₹)</label>
+        <input id="f-painting" type="number" min="0" value="0"/></div>
+      <div class="form-group full"><label class="form-label">Notes / Remarks</label>
+        <textarea id="f-notes" rows="3" placeholder="Any additional notes…"></textarea></div>
+    </div>
+    <div class="form-actions">
+      <button class="btn" onclick="cancelForm()">Cancel</button>
+      <button class="btn btn-amber" onclick="saveTenant()">💾 Save Tenant</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════ PAYMENTS ════════════════ -->
+<div class="page" id="page-payments">
+  <div class="pay-layout">
+    <div>
+      <div class="card">
+        <div class="card-header">💰 Record Payment</div>
+        <div class="card-body">
+          <div class="pay-group"><label>Select Tenant *</label>
+            <select id="p-tenant" onchange="onTenantChange()"><option value="">— Select Tenant —</option></select></div>
+          <div class="pay-group"><label>Payment Period (Month/Year) *</label>
+            <input type="month" id="p-period" onchange="checkDup()"/></div>
+          <div class="pay-group"><label>Rent Amount (₹) *</label>
+            <input type="number" id="p-rent" min="0" placeholder="0"/></div>
+          <div class="pay-group"><label>Maintenance Charges (₹)</label>
+            <input type="number" id="p-maint" min="0" value="0"/></div>
+          <div class="pay-group"><label>Extra / Other Charges (₹)</label>
+            <input type="number" id="p-extra" min="0" value="0"/></div>
+          <div class="pay-group"><label>Date of Payment *</label>
+            <input type="date" id="p-date"/></div>
+          <div class="pay-group"><label>Notes</label>
+            <textarea id="p-notes" rows="2" placeholder="Optional…"></textarea></div>
+          <div class="dup-warn" id="p-warn"></div>
+          <button class="btn btn-amber" style="width:100%;" onclick="recordPayment()">
+            💾 Save &amp; Generate Receipt
+          </button>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="toolbar" style="justify-content:space-between;">
+        <span style="font-weight:800;font-size:15px;color:#1a2744;">Payment History</span>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <select id="flt-tenant" onchange="renderPayHistory()"
+            style="font-size:12px;padding:7px 10px;border:1.5px solid #ddd;border-radius:7px;background:#fff;"></select>
+          <input type="month" id="flt-month" onchange="renderPayHistory()"
+            style="font-size:12px;padding:7px 10px;border:1.5px solid #ddd;border-radius:7px;background:#fff;"/>
+          <button class="btn btn-sm" onclick="clearFilters()">Clear</button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>Receipt #</th><th>Tenant</th><th>Period</th>
+            <th>Amount</th><th>Paid On</th><th>Actions</th>
+          </tr></thead>
+          <tbody id="p-tbody"></tbody>
+        </table>
+        <div class="empty-state" id="p-empty" style="display:none;">
+          <div class="empty-icon">📂</div>
+          <div class="empty-title">No payments recorded</div>
+          <div class="empty-sub">Record a payment using the form on the left</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════ REMINDERS ════════════════ -->
+<div class="page" id="page-reminders">
+  <div class="toolbar" style="justify-content:space-between;">
+    <div style="font-size:17px;font-weight:800;color:#1a2744;">🔔 Monthly Reminders</div>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <label style="font-size:12px;font-weight:700;color:#888;">Month:</label>
+      <input type="month" id="rm-month-sel" onchange="renderReminders()"
+        style="font-size:13px;padding:7px 11px;border:1.5px solid #ddd;border-radius:8px;background:#fff;"/>
+    </div>
+  </div>
+  <div class="rm-layout">
+    <div class="rm-stat" style="border-left:5px solid #1d8a6e;">
+      <div style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">Paid</div>
+      <div style="font-size:28px;font-weight:800;color:#1d8a6e;" id="rm-paid-count">0</div>
+      <div style="font-size:12px;color:#888;" id="rm-paid-amt">₹0 collected</div>
+    </div>
+    <div class="rm-stat" style="border-left:5px solid #c0392b;">
+      <div style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">Unpaid / Pending</div>
+      <div style="font-size:28px;font-weight:800;color:#c0392b;" id="rm-due-count">0</div>
+      <div style="font-size:12px;color:#888;" id="rm-due-amt">₹0 outstanding</div>
+    </div>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr>
+        <th>Tenant</th><th>Phone</th><th>Rent Due (₹)</th>
+        <th>Status</th><th>Paid On</th><th>Receipt #</th><th>Action</th>
+      </tr></thead>
+      <tbody id="rm-tbody"></tbody>
+    </table>
+    <div class="empty-state" id="rm-empty" style="display:none;">
+      <div class="empty-icon">🏘️</div><div class="empty-title">No active tenants</div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════ RECEIPT ════════════════ -->
+<div class="page" id="page-receipt">
+  <div class="toolbar no-print">
+    <button class="btn" onclick="backFromReceipt()">← Back</button>
+    <button class="btn btn-green" onclick="window.print()">🖨️ Print / Save as PDF</button>
+    <span style="font-size:12px;color:#aaa;">Ctrl+P → Save as PDF</span>
+  </div>
+  <div class="receipt-outer">
+    <div class="receipt-card" id="rct-content"></div>
+  </div>
+</div>
+
+<!-- ════════════════ DATABASE ════════════════ -->
+<div class="page" id="page-database">
+  <div class="db-panel">
+    <div class="form-title">🗄️ Database Manager</div>
+
+    <div class="db-section">
+      <div class="db-section-title">📦 Storage Overview</div>
+      <div class="db-section-desc">All data is stored in your device's <strong>localStorage</strong> (part of the installed app). It stays on your phone and is never sent anywhere.</div>
+      <div class="info-box">
+        <strong>localStorage Keys used:</strong><br>
+        &nbsp;&nbsp;• <code>rms-tenants-v3</code> — Tenant records<br>
+        &nbsp;&nbsp;• <code>rms-payments-v3</code> — Payment records<br>
+        &nbsp;&nbsp;• <code>rms-auth</code> — Login credentials<br>
+      </div>
+      <div id="db-stats" style="font-size:13px;color:#555;padding:8px 12px;background:#f9f9f9;border-radius:8px;"></div>
+    </div>
+
+    <div class="db-section">
+      <div class="db-section-title">📤 Export / Backup</div>
+      <div class="db-section-desc">Download all your data as a JSON file. Keep this as a backup or transfer to another device.</div>
+      <button class="btn btn-amber" onclick="exportDB()">⬇️ Download Backup (.json)</button>
+    </div>
+
+    <div class="db-section">
+      <div class="db-section-title">📥 Import / Restore</div>
+      <div class="db-section-desc">Restore data from a previously exported JSON backup file.</div>
+      <div class="danger-box">⚠️ This will <strong>replace all current data</strong>. Export a backup first!</div>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+        <input type="file" id="import-file" accept=".json" style="font-size:13px;"/>
+        <button class="btn btn-primary" onclick="importDB()">📂 Import &amp; Restore</button>
+      </div>
+      <div class="success-box" id="import-success">✅ Data imported! Refreshing…</div>
+    </div>
+
+    <div class="db-section">
+      <div class="db-section-title">🗑️ Clear All Data</div>
+      <div class="db-section-desc">Permanently delete all tenants and payments from this device.</div>
+      <button class="btn btn-danger" onclick="clearAllData()">🗑️ Clear All Data</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════ SETTINGS ════════════════ -->
+<div class="page" id="page-settings">
+  <div class="db-panel">
+    <div class="form-title">⚙️ Settings</div>
+
+    <div class="db-section">
+      <div class="db-section-title">🔐 Change Login Credentials</div>
+      <div class="db-section-desc">Update the username and password used to log in to this app.</div>
+      <div class="settings-grid">
+        <div class="form-group">
+          <label class="form-label">New Username *</label>
+          <input id="s-user" type="text" placeholder="New username"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Current Password (to confirm) *</label>
+          <input id="s-current-pass" type="password" placeholder="Current password"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">New Password *</label>
+          <input id="s-new-pass" type="password" placeholder="New password (min 6 chars)"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Confirm New Password *</label>
+          <input id="s-confirm-pass" type="password" placeholder="Repeat new password"/>
+        </div>
+      </div>
+      <div class="danger-box" id="s-error" style="display:none;"></div>
+      <div class="success-box" id="s-success">✅ Credentials updated! Please log in again.</div>
+      <div class="form-actions" style="padding-top:14px;">
+        <button class="btn btn-amber" onclick="saveCredentials()">💾 Update Credentials</button>
+      </div>
+    </div>
+
+    <div class="db-section">
+      <div class="db-section-title">🏢 Property / Landlord Name</div>
+      <div class="db-section-desc">This name will appear on all generated receipts.</div>
+      <div class="form-group" style="max-width:360px;">
+        <label class="form-label">Property / Owner Name</label>
+        <input id="s-propname" type="text" placeholder="e.g. Sharma Properties"/>
+      </div>
+      <div class="form-actions" style="padding-top:14px;justify-content:flex-start;">
+        <button class="btn btn-amber" onclick="savePropName()">💾 Save Name</button>
+      </div>
+    </div>
+
+    <div class="db-section">
+      <div class="db-section-title">ℹ️ App Info</div>
+      <div style="font-size:13px;color:#888;line-height:1.8;">
+        <strong>Rent Manager Pro</strong> — Version 3.0 (PWA)<br>
+        Installable single-file offline-capable property management app.<br>
+        Database: Device localStorage &nbsp;|&nbsp; Works fully offline once installed.
+      </div>
+    </div>
+  </div>
+</div>
+
+</div><!-- /main -->
+</div><!-- /app -->
+
+<div id="toast"></div>
+
+<!-- ════════════════════════════════ JAVASCRIPT ════════════════════════════ -->
+<script>
+// ── KEYS ──────────────────────────────────────────────────────────────────
+const TKEY = 'rms-tenants-v3';
+const PKEY = 'rms-payments-v3';
+const AKEY = 'rms-auth';
+const PNKEY= 'rms-propname';
+
+// ── STATE ─────────────────────────────────────────────────────────────────
+let tenants  = [];
+let payments = [];
+let editId   = null;
+let receiptFromPage = 'payments';
+
+// ── AUTH ──────────────────────────────────────────────────────────────────
+function getAuth() {
+  try { return JSON.parse(localStorage.getItem(AKEY)) || {user:'admin',pass:'admin123'}; }
+  catch(e){ return {user:'admin',pass:'admin123'}; }
+}
+function doLogin() {
+  const u = document.getElementById('login-user').value.trim();
+  const p = document.getElementById('login-pass').value;
+  const auth = getAuth();
+  if(u===auth.user && p===auth.pass) {
+    document.getElementById('login-page').style.display='none';
+    document.getElementById('app').style.display='block';
+    document.getElementById('user-pill').textContent='👤 '+u;
+    load();
+  } else {
+    document.getElementById('login-error').style.display='block';
+    document.getElementById('login-pass').value='';
+    document.getElementById('login-pass').focus();
+    setTimeout(()=>document.getElementById('login-error').style.display='none',3000);
+  }
+}
+function doLogout() {
+  if(!confirm('Sign out?')) return;
+  document.getElementById('app').style.display='none';
+  document.getElementById('login-page').style.display='flex';
+  document.getElementById('login-user').value='';
+  document.getElementById('login-pass').value='';
+}
+function saveCredentials() {
+  const nu = document.getElementById('s-user').value.trim();
+  const cp = document.getElementById('s-current-pass').value;
+  const np = document.getElementById('s-new-pass').value;
+  const rp = document.getElementById('s-confirm-pass').value;
+  const auth=getAuth();
+  const errEl=document.getElementById('s-error');
+  const okEl =document.getElementById('s-success');
+  errEl.style.display='none'; okEl.style.display='none';
+  if(!nu||!cp||!np||!rp){errEl.textContent='All fields are required.';errEl.style.display='block';return;}
+  if(cp!==auth.pass){errEl.textContent='Current password is incorrect.';errEl.style.display='block';return;}
+  if(np.length<6){errEl.textContent='New password must be at least 6 characters.';errEl.style.display='block';return;}
+  if(np!==rp){errEl.textContent='New passwords do not match.';errEl.style.display='block';return;}
+  localStorage.setItem(AKEY,JSON.stringify({user:nu,pass:np}));
+  okEl.style.display='block';
+  setTimeout(()=>{okEl.style.display='none';doLogout();},2000);
+}
+function savePropName(){
+  const v=document.getElementById('s-propname').value.trim();
+  localStorage.setItem(PNKEY,v);toast('✅ Property name saved!');
+}
+function getPropName(){return localStorage.getItem(PNKEY)||'Rent Manager Pro';}
+
+// ── LOAD / SAVE ───────────────────────────────────────────────────────────
+function load() {
+  try{tenants =JSON.parse(localStorage.getItem(TKEY)||'[]');}catch(e){tenants=[];}
+  try{payments=JSON.parse(localStorage.getItem(PKEY)||'[]');}catch(e){payments=[];}
+  const pn=getPropName();
+  document.getElementById('s-propname').value=pn;
+  const auth=getAuth();
+  document.getElementById('s-user').value=auth.user;
+  renderAll();
+}
+function saveTenants() {localStorage.setItem(TKEY,JSON.stringify(tenants));}
+function savePayments(){localStorage.setItem(PKEY,JSON.stringify(payments));}
+
+// ── HELPERS ───────────────────────────────────────────────────────────────
+const months=['January','February','March','April','May','June','July','August','September','October','November','December'];
+const mshort=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const todayStr=()=>new Date().toISOString().split('T')[0];
+const curPeriod=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');};
+const periodLbl=p=>{if(!p)return'—';const[y,m]=p.split('-');return mshort[+m-1]+' '+y;};
+const fmtDate=d=>{if(!d)return'—';const[y,m,dd]=d.split('-');return +dd+' '+months[+m-1]+' '+y;};
+const inr=n=>'₹'+(+n||0).toLocaleString('en-IN');
+const initials=n=>(n||'').trim().split(/\s+/).slice(0,2).map(w=>(w[0]||'').toUpperCase()).join('');
+const genRctNo=()=>'RCP-'+String(payments.length+1).padStart(4,'0');
+function fmtAadhar(el){let v=el.value.replace(/\D/g,'').substring(0,12);el.value=v.replace(/(\d{4})(?=\d)/g,'$1 ');}
+
+// ── NAVIGATION ────────────────────────────────────────────────────────────
+function nav(name,btn){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  if(btn)btn.classList.add('active');
+  if(name==='database')updateDbStats();
+}
+function toast(msg,ok=true){
+  const t=document.getElementById('toast');
+  t.innerHTML=msg;t.style.borderLeftColor=ok?'#d4860e':'#c0392b';
+  t.style.display='block';clearTimeout(t._t);t._t=setTimeout(()=>t.style.display='none',3200);
+}
+
+// ── RENDER ALL ────────────────────────────────────────────────────────────
+function renderAll(){
+  renderDashboard();renderTenants('');populateSelects();
+  renderPayHistory();
+  const rm=document.getElementById('rm-month-sel');
+  if(!rm.value)rm.value=curPeriod();
+  renderReminders();
+}
+
+// ── DASHBOARD ─────────────────────────────────────────────────────────────
+function renderDashboard(){
+  const active=tenants.filter(t=>!t.exit);
+  const period=curPeriod();
+  const paidSet=new Set(payments.filter(p=>p.period===period).map(p=>p.tenantId));
+  const unpaid=active.filter(t=>!paidSet.has(t.id));
+  const revenue=active.reduce((s,t)=>s+(+t.rent||0)+(+t.maintenance||0),0);
+  const collected=payments.reduce((s,p)=>s+(+p.rent||0)+(+p.maint||0)+(+p.extra||0),0);
+  document.getElementById('s-active').textContent=active.length;
+  document.getElementById('s-revenue').textContent=inr(revenue);
+  document.getElementById('s-unpaid').textContent=unpaid.length;
+  document.getElementById('s-mlabel').textContent=periodLbl(period);
+  document.getElementById('s-collected').textContent=inr(collected);
+  document.getElementById('dash-period-label').textContent=periodLbl(period);
+
+  const rmEl=document.getElementById('dash-reminders');
+  if(!active.length){rmEl.innerHTML='<div class="empty-state" style="padding:20px;">No active tenants yet.</div>';return;}
+  rmEl.innerHTML=active.slice(0,7).map(t=>{
+    const paid=paidSet.has(t.id);
+    const py=payments.find(px=>px.period===period&&px.tenantId===t.id);
+    const total=py?(+py.rent||0)+(+py.maint||0)+(+py.extra||0):(+t.rent||0)+(+t.maintenance||0);
+    return `<div class="mini-row">
+      <div style="display:flex;align-items:center;gap:8px;font-weight:700;">
+        <div class="avatar">${initials(t.name)}</div>${t.name}</div>
+      <div style="display:flex;align-items:center;gap:7px;">
+        <span style="font-size:12px;color:#888;">${inr(total)}</span>
+        <span class="badge ${paid?'badge-green':'badge-red'}">${paid?'Paid':'Due'}</span>
+        ${!paid?`<button class="btn btn-sm btn-amber no-print" onclick="quickPay(${t.id})">Record</button>`:''}
+      </div></div>`;
+  }).join('')+(active.length>7?`<div style="text-align:center;font-size:12px;color:#aaa;padding:8px 0;">+${active.length-7} more &nbsp;<button class="btn btn-sm" onclick="nav('reminders',document.getElementById('nb-reminders'))">See all</button></div>`:'');
+
+  const rpEl=document.getElementById('dash-recent-pay');
+  const recent=[...payments].sort((a,b)=>b.id-a.id).slice(0,5);
+  if(!recent.length){rpEl.innerHTML='<div class="empty-state" style="padding:20px;">No payments yet.</div>';return;}
+  rpEl.innerHTML=recent.map(p=>{
+    const t=tenants.find(x=>x.id===p.tenantId);
+    const total=(+p.rent||0)+(+p.maint||0)+(+p.extra||0);
+    return `<div class="mini-row">
+      <div><div style="font-weight:700;">${t?.name||'Unknown'}</div>
+        <div style="font-size:11px;color:#aaa;">${periodLbl(p.period)} &bull; ${p.receiptNo}</div></div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span style="font-weight:800;color:#d4860e;">${inr(total)}</span>
+        <button class="btn btn-sm btn-outline no-print" onclick="viewReceipt(${p.id},'dashboard')">Receipt</button>
+      </div></div>`;
+  }).join('');
+}
+
+// ── TENANTS ───────────────────────────────────────────────────────────────
+function renderTenants(q=''){
+  const q2=(q||'').toLowerCase();
+  const list=tenants.filter(t=>t.name.toLowerCase().includes(q2)||(t.phone||'').includes(q2)||(t.aadhar||'').includes(q2));
+  const tbody=document.getElementById('t-tbody'),empty=document.getElementById('t-empty');
+  if(!list.length){tbody.innerHTML='';empty.style.display='block';return;}
+  empty.style.display='none';
+  tbody.innerHTML=list.map(t=>`<tr>
+    <td><div style="display:flex;align-items:center;gap:9px;">
+      <div class="avatar">${initials(t.name)}</div>
+      <div><div style="font-weight:700;">${t.name}</div>
+           <div style="font-size:11px;color:#aaa;">${t.occupation||''}</div></div></div></td>
+    <td>${t.phone||'—'}<br><span style="font-size:11px;color:#aaa;">${t.aadhar||''}</span></td>
+    <td>${fmtDate(t.occupancy)}${t.exit?`<br><span style="font-size:11px;color:#c0392b;">Exit: ${fmtDate(t.exit)}</span>`:''}</td>
+    <td style="font-weight:700;">${inr(t.rent)}<br><span style="font-size:11px;color:#aaa;">+${inr(t.maintenance)} maint</span></td>
+    <td>${inr(t.deposit)}</td>
+    <td><span class="badge ${!t.exit?'badge-green':'badge-red'}">${!t.exit?'Active':'Vacated'}</span></td>
+    <td style="white-space:nowrap;">
+      <button class="btn btn-sm" onclick="editTenant(${t.id})">✏️ Edit</button>
+      <button class="btn btn-sm btn-danger" onclick="deleteTenant(${t.id})" style="margin-left:4px;">🗑️</button>
+    </td></tr>`).join('');
+}
+
+// ── SELECTS ───────────────────────────────────────────────────────────────
+function populateSelects(){
+  const active=tenants.filter(t=>!t.exit);
+  const pOpts=active.map(t=>`<option value="${t.id}">${t.name}</option>`).join('');
+  const aOpts=tenants.map(t=>`<option value="${t.id}">${t.name}</option>`).join('');
+  document.getElementById('p-tenant').innerHTML='<option value="">— Select Tenant —</option>'+pOpts;
+  document.getElementById('flt-tenant').innerHTML='<option value="">All Tenants</option>'+aOpts;
+}
+
+// ── PAYMENT FORM ──────────────────────────────────────────────────────────
+function initPayForm(){
+  if(!document.getElementById('p-period').value)document.getElementById('p-period').value=curPeriod();
+  if(!document.getElementById('p-date').value)document.getElementById('p-date').value=todayStr();
+}
+function onTenantChange(){
+  const t=tenants.find(x=>x.id===+document.getElementById('p-tenant').value);
+  if(t){document.getElementById('p-rent').value=t.rent||0;document.getElementById('p-maint').value=t.maintenance||0;}
+  checkDup();
+}
+function checkDup(){
+  const tid=+document.getElementById('p-tenant').value,period=document.getElementById('p-period').value;
+  const dup=tid&&period?payments.find(p=>p.tenantId===tid&&p.period===period):null;
+  const w=document.getElementById('p-warn');
+  if(dup){w.style.display='block';w.textContent='⚠️ Payment for '+periodLbl(period)+' already recorded ('+dup.receiptNo+'). Saving adds a second record.';}
+  else{w.style.display='none';}
+}
+function clearFilters(){
+  document.getElementById('flt-tenant').value='';
+  document.getElementById('flt-month').value='';
+  renderPayHistory();
+}
+
+function recordPayment(){
+  const tenantId=+document.getElementById('p-tenant').value;
+  const period=document.getElementById('p-period').value;
+  const rent=+document.getElementById('p-rent').value;
+  const date=document.getElementById('p-date').value;
+  if(!tenantId){toast('Select a tenant!',false);return;}
+  if(!period){toast('Select payment period!',false);return;}
+  if(!rent){toast('Enter rent amount!',false);return;}
+  if(!date){toast('Enter payment date!',false);return;}
+  const p={id:Date.now(),tenantId,period,rent,
+    maint:+document.getElementById('p-maint').value||0,
+    extra:+document.getElementById('p-extra').value||0,
+    date,receiptNo:genRctNo(),
+    notes:document.getElementById('p-notes').value.trim()};
+  payments.push(p);savePayments();renderAll();
+  toast('✅ Payment saved! '+p.receiptNo);
+  document.getElementById('p-tenant').value='';
+  document.getElementById('p-rent').value='';
+  document.getElementById('p-maint').value='0';
+  document.getElementById('p-extra').value='0';
+  document.getElementById('p-notes').value='';
+  document.getElementById('p-warn').style.display='none';
+  viewReceipt(p.id,'payments');
+}
+
+// ── PAYMENT HISTORY ───────────────────────────────────────────────────────
+function renderPayHistory(){
+  const ft=+document.getElementById('flt-tenant').value||0;
+  const fm=document.getElementById('flt-month').value;
+  let list=[...payments];
+  if(ft)list=list.filter(p=>p.tenantId===ft);
+  if(fm)list=list.filter(p=>p.period===fm);
+  list.sort((a,b)=>b.id-a.id);
+  const tbody=document.getElementById('p-tbody'),empty=document.getElementById('p-empty');
+  if(!list.length){tbody.innerHTML='';empty.style.display='block';return;}
+  empty.style.display='none';
+  tbody.innerHTML=list.map(p=>{
+    const t=tenants.find(x=>x.id===p.tenantId);
+    const total=(+p.rent||0)+(+p.maint||0)+(+p.extra||0);
+    return `<tr>
+      <td style="font-weight:800;color:#d4860e;">${p.receiptNo}</td>
+      <td>${t?.name||'—'}</td>
+      <td>${periodLbl(p.period)}</td>
+      <td style="font-weight:700;">${inr(total)}</td>
+      <td>${fmtDate(p.date)}</td>
+      <td style="white-space:nowrap;">
+        <button class="btn btn-sm btn-green" onclick="viewReceipt(${p.id},'payments')">🖨️ Receipt</button>
+        <button class="btn btn-sm btn-danger" onclick="deletePayment(${p.id})" style="margin-left:4px;">🗑️</button>
+      </td></tr>`;
+  }).join('');
+}
+function deletePayment(id){
+  if(!confirm('Delete this payment record?'))return;
+  payments=payments.filter(p=>p.id!==id);savePayments();renderAll();toast('Payment deleted.');
+}
+
+// ── REMINDERS ─────────────────────────────────────────────────────────────
+function renderReminders(){
+  const period=document.getElementById('rm-month-sel').value||curPeriod();
+  const active=tenants.filter(t=>!t.exit);
+  const paidMap={};
+  payments.filter(p=>p.period===period).forEach(p=>{paidMap[p.tenantId]=p;});
+  const paidList=active.filter(t=>paidMap[t.id]);
+  const dueList=active.filter(t=>!paidMap[t.id]);
+  const paidTotal=paidList.reduce((s,t)=>{const p=paidMap[t.id];return s+(+p.rent||0)+(+p.maint||0)+(+p.extra||0);},0);
+  const dueTotal=dueList.reduce((s,t)=>s+(+t.rent||0)+(+t.maintenance||0),0);
+  document.getElementById('rm-paid-count').textContent=paidList.length;
+  document.getElementById('rm-paid-amt').textContent=inr(paidTotal)+' collected';
+  document.getElementById('rm-due-count').textContent=dueList.length;
+  document.getElementById('rm-due-amt').textContent=inr(dueTotal)+' outstanding';
+  const tbody=document.getElementById('rm-tbody'),empty=document.getElementById('rm-empty');
+  if(!active.length){tbody.innerHTML='';empty.style.display='block';return;}
+  empty.style.display='none';
+  tbody.innerHTML=[...paidList,...dueList].map(t=>{
+    const py=paidMap[t.id];const isPaid=!!py;
+    const due=isPaid?(+py.rent||0)+(+py.maint||0)+(+py.extra||0):(+t.rent||0)+(+t.maintenance||0);
+    return `<tr>
+      <td><div style="display:flex;align-items:center;gap:8px;">
+        <div class="avatar">${initials(t.name)}</div>
+        <div><div style="font-weight:700;">${t.name}</div>
+             <div style="font-size:11px;color:#aaa;">${t.occupation||''}</div></div></div></td>
+      <td>${t.phone||'—'}</td>
+      <td style="font-weight:700;">${inr(due)}</td>
+      <td><span class="badge ${isPaid?'badge-green':'badge-red'}">${isPaid?'Paid':'Unpaid'}</span></td>
+      <td>${isPaid?fmtDate(py.date):'—'}</td>
+      <td style="font-weight:700;color:#d4860e;">${isPaid?py.receiptNo:'—'}</td>
+      <td>${isPaid
+        ?`<button class="btn btn-sm btn-green" onclick="viewReceipt(${py.id},'reminders')">🖨️ Receipt</button>`
+        :`<button class="btn btn-sm btn-amber" onclick="quickPay(${t.id})">Record Payment</button>`}
+      </td></tr>`;
+  }).join('');
+}
+function quickPay(tid){
+  nav('payments',document.getElementById('nb-payments'));initPayForm();
+  setTimeout(()=>{
+    document.getElementById('p-tenant').value=String(tid);
+    document.getElementById('p-period').value=curPeriod();
+    document.getElementById('p-date').value=todayStr();
+    onTenantChange();
+  },80);
+}
+
+// ── RECEIPT ───────────────────────────────────────────────────────────────
+function viewReceipt(payId,fromPage){
+  const p=payments.find(x=>x.id===payId);if(!p)return;
+  const t=tenants.find(x=>x.id===p.tenantId);if(!t)return;
+  receiptFromPage=fromPage||'payments';
+  const total=(+p.rent||0)+(+p.maint||0)+(+p.extra||0);
+  const[py,pm]=p.period.split('-');
+  const propName=getPropName();
+  document.getElementById('rct-content').innerHTML=`
+    <div class="rct-header">
+      <div style="font-size:11px;color:#bbb;letter-spacing:3px;text-transform:uppercase;margin-bottom:5px;">Property Rental Receipt</div>
+      <div class="rct-brand">${propName.toUpperCase()}</div>
+      <div style="font-size:11px;color:#aaa;letter-spacing:2px;text-transform:uppercase;margin-top:3px;">Official Payment Receipt</div>
+      <div style="font-size:13px;color:#666;margin-top:10px;">${p.receiptNo} &nbsp;|&nbsp; Issued: ${fmtDate(p.date)}</div>
+    </div>
+    <div class="rct-section" style="margin-bottom:18px;">
+      <div class="rct-sec-label">Received From</div>
+      <div class="rct-row"><span>Tenant Name</span><span>${t.name}</span></div>
+      ${t.phone?`<div class="rct-row"><span>Phone</span><span>${t.phone}</span></div>`:''}
+      ${t.aadhar?`<div class="rct-row"><span>Aadhar No.</span><span>${t.aadhar}</span></div>`:''}
+      ${t.altcontact?`<div class="rct-row"><span>Alt. Contact</span><span>${t.altcontact}</span></div>`:''}
+      ${t.occupation?`<div class="rct-row"><span>Occupation</span><span>${t.occupation}</span></div>`:''}
+    </div>
+    <div class="rct-section" style="margin-bottom:18px;">
+      <div class="rct-sec-label">Tenancy Information</div>
+      <div class="rct-row"><span>Occupancy Since</span><span>${fmtDate(t.occupancy)}</span></div>
+      ${t.exit?`<div class="rct-row"><span>Exit Date</span><span>${fmtDate(t.exit)}</span></div>`:''}
+      <div class="rct-row"><span>Security Deposit Held</span><span>${inr(t.deposit)}</span></div>
+      <div class="rct-row"><span>Yearly Increment</span><span>${t.increment||5}%</span></div>
+    </div>
+    <div class="rct-section" style="margin-bottom:18px;">
+      <div class="rct-sec-label">Payment Breakdown — ${months[+pm-1]} ${py}</div>
+      <div class="rct-row"><span>Base Rent</span><span>${inr(p.rent)}</span></div>
+      ${p.maint>0?`<div class="rct-row"><span>Maintenance Charges</span><span>${inr(p.maint)}</span></div>`:''}
+      ${t.painting>0?`<div class="rct-row"><span>Painting Charge</span><span>${inr(t.painting)}</span></div>`:''}
+      ${p.extra>0?`<div class="rct-row"><span>Extra Charges</span><span>${inr(p.extra)}</span></div>`:''}
+      ${p.notes?`<div class="rct-row"><span>Notes</span><span style="color:#777;font-size:12px;">${p.notes}</span></div>`:''}
+    </div>
+    <div class="rct-total-box">
+      <div>
+        <div style="font-size:11px;text-transform:uppercase;letter-spacing:.5px;opacity:.7;">Total Amount Received</div>
+        <div style="font-size:11px;opacity:.5;margin-top:3px;">Period: ${months[+pm-1]} ${py}</div>
+      </div>
+      <div class="rct-total-val">${inr(total)}</div>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-top:36px;padding-top:16px;border-top:1px solid #eee;">
+      <div>
+        <div style="font-size:12px;color:#bbb;">Computer-generated receipt. No physical signature required.</div>
+        <div style="font-size:11px;color:#ddd;margin-top:6px;">Generated by Rent Manager Pro</div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:10px;">
+        <div class="rct-stamp">
+          <div style="font-size:16px;font-weight:900;color:#1d8a6e;letter-spacing:2px;">PAID</div>
+          <div style="font-size:10px;margin-top:2px;">${mshort[+pm-1]} ${py}</div>
+        </div>
+        <div style="text-align:center;">
+          <div style="width:140px;border-top:1.5px solid #333;padding-top:5px;font-size:11px;color:#888;">Authorised Signature</div>
+        </div>
+      </div>
+    </div>`;
+  nav('receipt',null);
+}
+function backFromReceipt(){nav(receiptFromPage,document.getElementById('nb-'+receiptFromPage));}
+
+// ── TENANT FORM ───────────────────────────────────────────────────────────
+function openAdd(){
+  editId=null;document.getElementById('form-title').textContent='Add New Tenant';
+  ['name','aadhar','phone','altcontact','occupation','occupancy','exit','notes'].forEach(f=>document.getElementById('f-'+f).value='');
+  ['rent','deposit'].forEach(f=>document.getElementById('f-'+f).value='');
+  document.getElementById('f-increment').value='5';
+  document.getElementById('f-maintenance').value='0';
+  document.getElementById('f-painting').value='0';
+}
+function editTenant(id){
+  const t=tenants.find(x=>x.id===id);if(!t)return;
+  editId=id;document.getElementById('form-title').textContent='Edit Tenant';
+  ['name','aadhar','phone','altcontact','occupation','occupancy','exit','notes'].forEach(f=>document.getElementById('f-'+f).value=t[f]||'');
+  ['rent','deposit','increment','maintenance','painting'].forEach(f=>document.getElementById('f-'+f).value=t[f]||0);
+  nav('add',document.getElementById('nb-add'));
+}
+function saveTenant(){
+  const name=document.getElementById('f-name').value.trim();
+  const phone=document.getElementById('f-phone').value.trim();
+  const occupancy=document.getElementById('f-occupancy').value;
+  const rent=document.getElementById('f-rent').value;
+  const deposit=document.getElementById('f-deposit').value;
+  if(!name){toast('Full name is required!',false);return;}
+  if(!phone){toast('Phone number is required!',false);return;}
+  if(!occupancy){toast('Date of occupancy is required!',false);return;}
+  if(!rent){toast('Rent amount is required!',false);return;}
+  if(!deposit){toast('Deposit amount is required!',false);return;}
+  const data={name,phone,
+    aadhar:document.getElementById('f-aadhar').value.trim(),
+    altcontact:document.getElementById('f-altcontact').value.trim(),
+    occupation:document.getElementById('f-occupation').value.trim(),
+    occupancy,exit:document.getElementById('f-exit').value,
+    rent:+rent,deposit:+deposit,
+    increment:+document.getElementById('f-increment').value||5,
+    maintenance:+document.getElementById('f-maintenance').value||0,
+    painting:+document.getElementById('f-painting').value||0,
+    notes:document.getElementById('f-notes').value.trim()};
+  if(editId!==null){
+    const idx=tenants.findIndex(t=>t.id===editId);
+    if(idx!==-1)tenants[idx]={...tenants[idx],...data};
+    toast('✅ Tenant updated!');
+  }else{data.id=Date.now();tenants.push(data);toast('✅ Tenant added!');}
+  saveTenants();renderAll();nav('tenants',document.getElementById('nb-tenants'));
+}
+function deleteTenant(id){
+  if(!confirm('Delete this tenant? Their payment records are kept.'))return;
+  tenants=tenants.filter(t=>t.id!==id);saveTenants();renderAll();toast('Tenant deleted.');
+}
+function cancelForm(){nav('tenants',document.getElementById('nb-tenants'));}
+
+// ── DATABASE MANAGER ──────────────────────────────────────────────────────
+function updateDbStats(){
+  const ts=localStorage.getItem(TKEY)||'[]';
+  const ps=localStorage.getItem(PKEY)||'[]';
+  const tSz=(new Blob([ts]).size/1024).toFixed(2);
+  const pSz=(new Blob([ps]).size/1024).toFixed(2);
+  document.getElementById('db-stats').innerHTML=
+    `📦 <strong>${tenants.length}</strong> tenants (${tSz} KB) &nbsp;&bull;&nbsp; <strong>${payments.length}</strong> payments (${pSz} KB) &nbsp;&bull;&nbsp; Total: <strong>${(+tSz+(+pSz)).toFixed(2)} KB</strong> of 5 MB limit`;
+}
+function exportDB(){
+  const data={version:3,exportedAt:new Date().toISOString(),exportedBy:getAuth().user,tenants,payments};
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download='RentManagerPro_Backup_'+todayStr()+'.json';
+  a.click();URL.revokeObjectURL(url);
+  toast('✅ Backup downloaded!');
+}
+function importDB(){
+  const file=document.getElementById('import-file').files[0];
+  if(!file){toast('Choose a JSON file first!',false);return;}
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const data=JSON.parse(e.target.result);
+      if(!data.tenants||!data.payments)throw new Error('Invalid format');
+      tenants=data.tenants;payments=data.payments;
+      saveTenants();savePayments();
+      document.getElementById('import-success').style.display='block';
+      setTimeout(()=>{renderAll();updateDbStats();document.getElementById('import-success').style.display='none';},1500);
+      toast('✅ Data imported successfully!');
+    }catch(err){toast('❌ Invalid backup file!',false);}
+  };
+  reader.readAsText(file);
+}
+function clearAllData(){
+  if(!confirm('⚠️ Delete ALL tenants and payments permanently?'))return;
+  if(!confirm('Final confirmation — this cannot be undone. Continue?'))return;
+  tenants=[];payments=[];saveTenants();savePayments();
+  renderAll();updateDbStats();toast('All data cleared.');
+}
+
+// ── PWA INSTALL (Android) ─────────────────────────────────────────────────
+let deferredInstallPrompt = null;
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredInstallPrompt = e;
+  document.getElementById('install-banner').style.display = 'block';
+});
+function triggerInstall() {
+  if (!deferredInstallPrompt) return;
+  deferredInstallPrompt.prompt();
+  deferredInstallPrompt.userChoice.then(() => {
+    deferredInstallPrompt = null;
+    document.getElementById('install-banner').style.display = 'none';
+  });
+}
+window.addEventListener('appinstalled', () => {
+  document.getElementById('install-banner').style.display = 'none';
+});
+
+// ── SERVICE WORKER REGISTRATION (offline support) ────────────────────────
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(()=>{});
+  });
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────────
+document.getElementById('rm-month-sel').value=curPeriod();
+initPayForm();
+document.getElementById('login-user').focus();
+</script>
+</body>
+</html>
