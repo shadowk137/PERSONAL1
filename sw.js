@@ -26,6 +26,11 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
+  const url = new URL(event.request.url);
+  // Never intercept calls to the Google Apps Script sync API — always go live to the network
+  if (url.origin !== self.location.origin) {
+    return; // let the browser handle it normally
+  }
   event.respondWith(
     caches.match(event.request).then((cached) => {
       return cached || fetch(event.request).then((response) => {
