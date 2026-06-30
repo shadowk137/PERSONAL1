@@ -279,6 +279,7 @@ code{background:#f0f0f0;padding:2px 6px;border-radius:4px;font-size:12px;color:#
     <button class="nav-btn"        id="nb-settings"   onclick="nav('settings',this)">⚙️ Settings</button>
   </div>
   <div class="topbar-right">
+    <button class="logout-btn" id="sync-pill" onclick="manualSync()" title="Tap to sync now" style="display:none;"></button>
     <div class="user-pill" id="user-pill">👤 admin</div>
     <button class="logout-btn" onclick="doLogout()">Sign Out</button>
   </div>
@@ -499,13 +500,37 @@ code{background:#f0f0f0;padding:2px 6px;border-radius:4px;font-size:12px;color:#
     <div class="form-title">🗄️ Database Manager</div>
 
     <div class="db-section">
+      <div class="db-section-title">☁️ Google Drive Sync (Multi-Device)</div>
+      <div class="db-section-desc">Connect this app to a small free Google Apps Script "API" backed by a file on your Google Drive. Once connected, every device using the same link below will read and write the <strong>same data</strong> — add a tenant on your phone, see it instantly on your laptop.</div>
+      <div class="info-box">
+        <strong>One-time setup</strong> (takes ~5 minutes, see README for full steps):<br>
+        1. Go to <strong>script.google.com</strong> → New project<br>
+        2. Paste in the provided <code>Code.gs</code> script<br>
+        3. Deploy → Web app → Execute as <em>Me</em>, Access: <em>Anyone</em><br>
+        4. Copy the generated <code>…/exec</code> URL and paste it below
+      </div>
+      <div class="form-group" style="margin-bottom:10px;">
+        <label class="form-label">Google Apps Script Web App URL</label>
+        <input id="s-apiurl" type="text" placeholder="https://script.google.com/macros/s/XXXXXXXX/exec"/>
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+        <button class="btn btn-amber" onclick="saveApiUrl()">🔗 Connect</button>
+        <button class="btn btn-green" onclick="manualSync()">🔄 Sync Now</button>
+        <button class="btn btn-danger" onclick="disconnectCloud()">⛔ Disconnect</button>
+      </div>
+      <div style="font-size:12px;margin-top:10px;padding:8px 12px;border-radius:8px;background:#f9f9f9;color:#555;" id="cloud-status">Not connected — data is only saved on this device.</div>
+      <div class="danger-box" style="margin-top:10px;">⚠️ Anyone who has this Apps Script URL can read and write the data directly (there's no per-user login on the API itself) — only share it with people you trust with edit access.</div>
+    </div>
+
+    <div class="db-section">
       <div class="db-section-title">📦 Storage Overview</div>
-      <div class="db-section-desc">All data is stored in your device's <strong>localStorage</strong> (part of the installed app). It stays on your phone and is never sent anywhere.</div>
+      <div class="db-section-desc">Data is cached in this device's <strong>localStorage</strong> for instant loading and offline use, and — once connected above — synced to a JSON file on Google Drive so every device stays in agreement.</div>
       <div class="info-box">
         <strong>localStorage Keys used:</strong><br>
-        &nbsp;&nbsp;• <code>rms-tenants-v3</code> — Tenant records<br>
-        &nbsp;&nbsp;• <code>rms-payments-v3</code> — Payment records<br>
+        &nbsp;&nbsp;• <code>rms-tenants-v3</code> — Tenant records (local cache)<br>
+        &nbsp;&nbsp;• <code>rms-payments-v3</code> — Payment records (local cache)<br>
         &nbsp;&nbsp;• <code>rms-auth</code> — Login credentials<br>
+        &nbsp;&nbsp;• <code>rms-api-url</code> — Your connected Apps Script URL<br>
       </div>
       <div id="db-stats" style="font-size:13px;color:#555;padding:8px 12px;background:#f9f9f9;border-radius:8px;"></div>
     </div>
@@ -603,12 +628,16 @@ const TKEY = 'rms-tenants-v3';
 const PKEY = 'rms-payments-v3';
 const AKEY = 'rms-auth';
 const PNKEY= 'rms-propname';
+const APIKEY = 'rms-api-url';
 
 // ── STATE ─────────────────────────────────────────────────────────────────
 let tenants  = [];
 let payments = [];
 let editId   = null;
 let receiptFromPage = 'payments';
+let syncTimer = null;
+let pollTimer = null;
+let isSyncing = false;
 
 // ── AUTH ──────────────────────────────────────────────────────────────────
 function getAuth() {
@@ -661,18 +690,122 @@ function savePropName(){
 }
 function getPropName(){return localStorage.getItem(PNKEY)||'Rent Manager Pro';}
 
-// ── LOAD / SAVE ───────────────────────────────────────────────────────────
-function load() {
+// ── LOAD / SAVE (local cache) ─────────────────────────────────────────────
+function loadLocalCache() {
   try{tenants =JSON.parse(localStorage.getItem(TKEY)||'[]');}catch(e){tenants=[];}
   try{payments=JSON.parse(localStorage.getItem(PKEY)||'[]');}catch(e){payments=[];}
+}
+function saveLocalCache() {
+  localStorage.setItem(TKEY,JSON.stringify(tenants));
+  localStorage.setItem(PKEY,JSON.stringify(payments));
+}
+async function load() {
+  loadLocalCache();
   const pn=getPropName();
   document.getElementById('s-propname').value=pn;
   const auth=getAuth();
   document.getElementById('s-user').value=auth.user;
+  document.getElementById('s-apiurl').value=getApiUrl();
   renderAll();
+  if(getApiUrl()){
+    await cloudLoad();
+    startPolling();
+  }
+  updateCloudStatusUI();
 }
-function saveTenants() {localStorage.setItem(TKEY,JSON.stringify(tenants));}
-function savePayments(){localStorage.setItem(PKEY,JSON.stringify(payments));}
+// Called by every screen that changes tenants/payments
+function saveTenants() { saveLocalCache(); queueCloudSave(); }
+function savePayments(){ saveLocalCache(); queueCloudSave(); }
+
+// ── GOOGLE DRIVE CLOUD SYNC ───────────────────────────────────────────────
+function getApiUrl(){ return (localStorage.getItem(APIKEY)||'').trim(); }
+
+function saveApiUrl(){
+  const url = document.getElementById('s-apiurl').value.trim();
+  if(!url){ toast('Paste your Apps Script URL first!',false); return; }
+  if(!url.includes('script.google.com')){
+    if(!confirm('That doesn\'t look like a script.google.com URL. Save anyway?')) return;
+  }
+  localStorage.setItem(APIKEY,url);
+  toast('🔗 Connecting…');
+  cloudLoad().then(()=>{ startPolling(); updateCloudStatusUI(); toast('✅ Connected to Google Drive!'); });
+}
+function disconnectCloud(){
+  if(!confirm('Disconnect cloud sync? Your data stays safely on this device.')) return;
+  localStorage.removeItem(APIKEY);
+  document.getElementById('s-apiurl').value='';
+  stopPolling();
+  updateCloudStatusUI();
+  toast('Disconnected. Saving locally only.');
+}
+function setSyncPill(text, show){
+  const el=document.getElementById('sync-pill');
+  if(!el) return;
+  el.textContent=text;
+  el.style.display = show ? 'inline-flex' : 'none';
+}
+function updateCloudStatusUI(){
+  const el=document.getElementById('cloud-status');
+  const url=getApiUrl();
+  if(!el) { /* settings panel may not exist on this view yet */ }
+  if(!url){
+    if(el) el.textContent='Not connected — data is only saved on this device.';
+    setSyncPill('',false);
+    return;
+  }
+  if(el) el.textContent='☁️ Connected — syncing with Google Drive every 15s.';
+  setSyncPill('☁️ Synced', true);
+}
+function queueCloudSave(){
+  if(!getApiUrl()) return;
+  clearTimeout(syncTimer);
+  setSyncPill('☁️ Saving…', true);
+  syncTimer = setTimeout(cloudSave, 700);
+}
+async function cloudSave(){
+  const url=getApiUrl();
+  if(!url) return;
+  isSyncing=true;
+  try{
+    await fetch(url, {
+      method:'POST',
+      headers:{'Content-Type':'text/plain;charset=utf-8'}, // avoids CORS preflight on Apps Script
+      body: JSON.stringify({tenants,payments,updatedAt:new Date().toISOString()})
+    });
+    setSyncPill('☁️ Synced', true);
+  }catch(e){
+    setSyncPill('⚠️ Offline', true);
+  }
+  isSyncing=false;
+}
+async function cloudLoad(){
+  const url=getApiUrl();
+  if(!url) return;
+  setSyncPill('☁️ Syncing…', true);
+  try{
+    const res = await fetch(url, {method:'GET', cache:'no-store'});
+    const data = await res.json();
+    if(data && Array.isArray(data.tenants) && Array.isArray(data.payments)){
+      tenants = data.tenants;
+      payments = data.payments;
+      saveLocalCache();
+      renderAll();
+    }
+    setSyncPill('☁️ Synced', true);
+  }catch(e){
+    setSyncPill('⚠️ Offline', true);
+  }
+}
+function manualSync(){
+  if(!getApiUrl()){ nav('database',document.getElementById('nb-database')); toast('Connect Google Drive sync first (Database tab).',false); return; }
+  cloudLoad().then(()=>toast('🔄 Synced with Google Drive!'));
+}
+function startPolling(){
+  stopPolling();
+  if(!getApiUrl()) return;
+  pollTimer = setInterval(()=>{ if(!isSyncing) cloudLoad(); }, 15000);
+}
+function stopPolling(){ clearInterval(pollTimer); pollTimer=null; }
 
 // ── HELPERS ───────────────────────────────────────────────────────────────
 const months=['January','February','March','April','May','June','July','August','September','October','November','December'];
